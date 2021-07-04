@@ -1,10 +1,16 @@
 package blockchain
 
 import (
+	"crypto/x509"
+	"encoding/base64"
 	"fmt"
+
+	"fabric-service/vrf"
+	"fabric-service/vrf/p256"
 
 	"github.com/hyperledger/fabric-sdk-go/pkg/client/channel"
 	"github.com/hyperledger/fabric-sdk-go/pkg/client/ledger"
+	mspclient "github.com/hyperledger/fabric-sdk-go/pkg/client/msp"
 	"github.com/hyperledger/fabric-sdk-go/pkg/client/resmgmt"
 	"github.com/hyperledger/fabric-sdk-go/pkg/core/config"
 	"github.com/hyperledger/fabric-sdk-go/pkg/fabsdk"
@@ -23,6 +29,8 @@ type FabricSetup struct {
 	OrgAdmin        string
 	OrgName         string
 	UserName        string
+	vrfSigner				*vrf.PrivateKey
+	vrfVerifier     *vrf.PublicKey
 	client          *channel.Client
 	admin           *resmgmt.Client
 	ledger 					*ledger.Client
@@ -59,10 +67,10 @@ func (setup *FabricSetup) Initialize() error {
 	fmt.Println("Resource management client created")
 
 	// The MSP client allow us to retrieve user information from their identity, like its signing identity which we will need to save the channel
-	// mspClient, err := mspclient.New(sdk.Context(), mspclient.WithOrg(setup.OrgName))
-	// if err != nil {
-	// 	return errors.WithMessage(err, "failed to create MSP client")
-	// }
+	mspClient, err := mspclient.New(sdk.Context(), mspclient.WithOrg(setup.OrgName))
+	if err != nil {
+		return errors.WithMessage(err, "failed to create MSP client")
+	}
 	// adminIdentity, err := mspClient.GetSigningIdentity(setup.OrgAdmin)
 	// if err != nil {
 	// 	return errors.WithMessage(err, "failed to get admin signing identity")
@@ -93,6 +101,68 @@ func (setup *FabricSetup) Initialize() error {
 	}
 	fmt.Println("Channel client created")
 
+	clientIdentity, err := mspClient.GetSigningIdentity(setup.UserName)
+	if err != nil {
+		return errors.WithMessage(err, "failed to get admin signing identity")
+	}
+	cpk, err := clientIdentity.PrivateKey().PublicKey()
+	if err != nil {
+		fmt.Printf("Cannot get public key of client: %v \n", err)
+	}
+
+	cprivkey := clientIdentity.PrivateKey()
+	privkb, err := cprivkey.Bytes()
+	if err != nil {
+		fmt.Println("Cannot encode private key to bytes")
+	}
+
+	// privPem, _ := pem.Decode(privkb)
+	// if privPem == nil {
+	// 	fmt.Println("Cannot decode private key from bytes")
+	// }
+
+	// privateKey, err := x509.ParseECPrivateKey(privPem.Bytes)
+	// if err != nil {
+	// 	fmt.Println("Cannot decode x509 Pem Private Key", err)
+	// }
+
+	pkb, err := cpk.Bytes()
+	if err != nil {
+		fmt.Println("Cannot encode csp key to pkixpk")
+	}
+
+	vrfEncoder, err := p256.NewVRFSignerFromPEM(privkb)
+	if err != nil {
+		fmt.Println("Cannot create vrf encoder", err)
+	}
+	
+	vrfVerifier, err := p256.NewVRFVerifierFromRawKey(pkb)
+	if err != nil {
+		fmt.Println("Cannot create vrf verifier")
+	}
+
+	setup.vrfSigner = &vrfEncoder
+	fmt.Println("VRF Public Key", vrfEncoder.Public())
+	
+	setup.vrfVerifier = &vrfVerifier
+
+
+	pubkey, err := x509.ParsePKIXPublicKey(pkb)
+	if err != nil {
+		fmt.Println("Canntot parse decoded pubkey")
+	}
+
+	fmt.Printf("Client pubkey: %v \n", pubkey)
+
+	pkbytes, err := x509.MarshalPKIXPublicKey(pubkey)
+	if err != nil {
+		fmt.Println("Cannot marshal pkixpk")
+	}
+
+
+	pkencoded := base64.RawStdEncoding.EncodeToString(pkbytes)
+
+	fmt.Printf("Client pubkey encoded base64: %v \n", pkencoded)
 
 
 	ledgerContext := setup.sdk.ChannelContext(setup.ChannelID, fabsdk.WithUser(setup.UserName))
@@ -105,6 +175,14 @@ func (setup *FabricSetup) Initialize() error {
 	fmt.Println("Initialization Successful")
 	setup.initialized = true
 	return nil
+}
+
+func (setup *FabricSetup) GetVRFSigner() *vrf.PrivateKey {
+	return setup.vrfSigner
+}
+
+func (setup *FabricSetup) GetVRFVerifier() *vrf.PublicKey {
+	return setup.vrfVerifier
 }
 
 // func (setup *FabricSetup) InstallAndInstantiateCC() error {

@@ -1,6 +1,7 @@
 package main
 
 import (
+	"bytes"
 	"encoding/hex"
 	"fabric-service/blockchain"
 	"fmt"
@@ -8,6 +9,8 @@ import (
 	"os"
 	"regexp"
 	"sort"
+
+	"github.com/hyperledger/fabric-protos-go/peer"
 )
 
 func main() {
@@ -41,13 +44,6 @@ func main() {
 	// Close SDK
 	defer fSetup.CloseSDK()
 
-	// // Install and instantiate the chaincode
-	// err = fSetup.InstallAndInstantiateCC()
-	// if err != nil {
-	// 	fmt.Printf("Unable to install and instantiate the chaincode: %v\n", err)
-	// 	return
-	// }
-
 	// // Query the chaincode
 	// response, err := fSetup.QueryRead()
 	// if err != nil {
@@ -62,6 +58,17 @@ func main() {
 	}
 	fmt.Printf("Last block hash: %s\n", hex.EncodeToString(blockchainInfo.BCI.CurrentBlockHash))
 	fmt.Printf("Ledger height: %d\n", blockchainInfo.BCI.Height)
+
+	vrfs := *fSetup.GetVRFSigner()
+	vrfout, proof := vrfs.Evaluate(blockchainInfo.BCI.CurrentBlockHash)
+	fmt.Printf("VRF Output: %s \n", hex.EncodeToString(vrfout[:]))
+	fmt.Printf("VRF Proof: %s \n", hex.EncodeToString(proof))
+
+	vrfv := *fSetup.GetVRFVerifier()
+	output, err := vrfv.ProofToHash(blockchainInfo.BCI.CurrentBlockHash, proof)
+	fmt.Printf("VRF 1st out: %s, 2nd out: %s \n", vrfout, output)
+
+	fmt.Println("Comparing bytes", bytes.Compare(vrfout[:], output[:]))
 
 	channelConfig, err := fSetup.QueryLedgerConfig()
 	if err != nil {
@@ -89,7 +96,7 @@ func main() {
 	sort.Strings(endorsementInfo.PeersMSPIds)
 
 	fmt.Printf("\n\n#### Calculating peers according to input data\n")
-	os := blockchain.NewOrgSelector(blockchainInfo.BCI.CurrentBlockHash, endorsementInfo.NOutOf, len(endorsementInfo.PeersMSPIds), ioutil.Discard)
+	os := blockchain.NewOrgSelector(vrfout[:], endorsementInfo.NOutOf, len(endorsementInfo.PeersMSPIds), ioutil.Discard)
 	ids := os.SelectOrgs()
 	fmt.Println("According to randomized endorsement, tx must be sent to these ids: ", ids)
 	chosenPeers := *os.MapToPeerSlice(endorsementInfo.PeersMSPIds)
@@ -99,7 +106,10 @@ func main() {
 
 	chosenHosts := make([]string, 0)
 
-	fmt.Printf("\n\n#### Sending transaction")
+	fmt.Printf("\n\n#### Sending transaction \n")
+
+	// chosenPeers = []string{"Org1MSP", "Org2MSP"}
+
 	for _, v := range chosenPeers {
 		reg, err := regexp.Compile("[^a-zA-Z0-9]+")
     if err != nil {
@@ -107,7 +117,7 @@ func main() {
     }
     processedString := reg.ReplaceAllString(v, "")
 		host, ok := peerMap[processedString]
-		fmt.Println(host)
+		fmt.Println("\t", host)
 		if !ok {
 			fmt.Printf("In required policy and in the channel there is no anchor peer: %s\n", v)
 			break;
@@ -115,20 +125,23 @@ func main() {
 		chosenHosts = append(chosenHosts, host)
 	}
 
+	randomization := &peer.Randomization{LedgerHeight: blockchainInfo.BCI.Height, LedgerBlockHash: blockchainInfo.BCI.CurrentBlockHash, VrfProof: proof, VrfOutput: vrfout[:]}
+	// randomization = &peer.Randomization{}
+
+	// Prepare arguments
+	var args []string
+	args = append(args, "CreateAsset")
+	args = append(args, "asset10")
+	args = append(args, "yellow")
+	args = append(args, "5")
+	args = append(args, "Tom")
+	args = append(args, "1300")
 
 	// Invoke the chaincode
-	txId, err := fSetup.InvokeCC(chosenHosts)
+	txId, err := fSetup.InvokeCC(args, chosenHosts, randomization)
 	if err != nil {
-		fmt.Printf("Unable to invoke hello on the chaincode: %v\n", err)
+		fmt.Printf("Unable to invoke on the chaincode: %v\n", err)
 	} else {
-		fmt.Printf("Successfully invoke hello, transaction ID: %s\n", txId)
+		fmt.Printf("Successfull invoke, transaction ID: %s\n", txId)
 	}
-
-	// // Query again the chaincode
-	// response, err = fSetup.QueryHello()
-	// if err != nil {
-	// 	fmt.Printf("Unable to query hello on the chaincode: %v\n", err)
-	// } else {
-	// 	fmt.Printf("Response from the query hello: %s\n", response)
-	// }
 }

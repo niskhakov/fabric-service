@@ -9,6 +9,8 @@ export CORE_PEER_TLS_ENABLED=true
 export PEER0_ORG1_CA=${PWD}/fixtures/crypto-config/peerOrganizations/org1.example.com/peers/peer0.org1.example.com/tls/ca.crt
 export PEER0_ORG2_CA=${PWD}/fixtures/crypto-config/peerOrganizations/org2.example.com/peers/peer0.org2.example.com/tls/ca.crt
 export PEER0_ORG3_CA=${PWD}/fixtures/crypto-config/peerOrganizations/org3.example.com/peers/peer0.org3.example.com/tls/ca.crt
+export PEER0_ORG4_CA=${PWD}/fixtures/crypto-config/peerOrganizations/org4.example.com/peers/peer0.org4.example.com/tls/ca.crt
+export PEER0_ORG5_CA=${PWD}/fixtures/crypto-config/peerOrganizations/org5.example.com/peers/peer0.org5.example.com/tls/ca.crt
 export ORDERER_CA=${PWD}/fixtures/crypto-config/ordererOrganizations/example.com/orderers/orderer.example.com/msp/tlscacerts/tlsca.example.com-cert.pem
 export ORDERER_ADMIN_TLS_SIGN_CERT=${PWD}/fixtures/crypto-config/ordererOrganizations/example.com/orderers/orderer.example.com/tls/server.crt
 export ORDERER_ADMIN_TLS_PRIVATE_KEY=${PWD}/fixtures/crypto-config/ordererOrganizations/example.com/orderers/orderer.example.com/tls/server.key
@@ -104,7 +106,7 @@ CC_VERSION="1.0" # chaincode version
 CC_SEQUENCE="1" # chaincode definition sequence
 CC_INIT_FCN="InitLedger" # chaincode init function
 # CC_END_POLICY="--signature-policy OR('Org1MSP.peer','Org2MSP.peer')" # endorsement policy
-CC_END_POLICY="--signature-policy OutOf(1,'Org1MSP.peer','Org2MSP.peer')"
+CC_END_POLICY="--signature-policy OutOf(2,'Org1MSP.peer','Org2MSP.peer','Org3MSP.peer','Org4MSP.peer','Org5MSP.peer')"
 CC_COL_CONFIG="" # collection configuration 
 
 FABRIC_CFG_PATH=".bin"
@@ -236,6 +238,18 @@ infoln "Install chaincode on peer0.org2..."
 sleep $SLEEP_MAIN
 installChaincode 2
 
+infoln "Install chaincode on peer0.org3..."
+sleep $SLEEP_MAIN
+installChaincode 3
+
+infoln "Install chaincode on peer0.org4..."
+sleep $SLEEP_MAIN
+installChaincode 4
+
+infoln "Install chaincode on peer0.org5..."
+sleep $SLEEP_MAIN
+installChaincode 5
+
 ## query whether the chaincode is installed
 
 infoln "Query Installed chaincode on peer0.org1..."
@@ -259,19 +273,50 @@ infoln "checkCommitReadiness 2"
 sleep $SLEEP_MAIN
 checkCommitReadiness 2
 
-infoln "commitChaincodeDefinition 1 2"
+infoln "Approve For My Org3"
 sleep $SLEEP_MAIN
-commitChaincodeDefinition 1 2
+approveForMyOrg 3
 
-infoln "Query Commited 1 and 2"
+infoln "checkCommitReadiness 3"
+sleep $SLEEP_MAIN
+checkCommitReadiness 3
+
+
+infoln "Approve For My Org4"
+sleep $SLEEP_MAIN
+approveForMyOrg 4
+
+infoln "checkCommitReadiness 4"
+sleep $SLEEP_MAIN
+checkCommitReadiness 4
+
+infoln "Approve For My Org5"
+sleep $SLEEP_MAIN
+approveForMyOrg 5
+
+infoln "checkCommitReadiness 5"
+sleep $SLEEP_MAIN
+checkCommitReadiness 5
+
+infoln "commitChaincodeDefinition 1 2 3 4 5"
+sleep $SLEEP_MAIN
+commitChaincodeDefinition 1 2 3 4 5
+
+infoln "Query Commited 1, 2, 3, 4, 5"
 sleep $SLEEP_MAIN
 queryCommitted 1
 sleep $SLEEP_MAIN
 queryCommitted 2
-
-infoln "chaincodeInvokeInit 1 2 -> InitLedger invokation"
 sleep $SLEEP_MAIN
-chaincodeInvokeInit 1 2
+queryCommitted 3
+sleep $SLEEP_MAIN
+queryCommitted 4
+sleep $SLEEP_MAIN
+queryCommitted 5
+
+infoln "chaincodeInvokeInit 1 2 3 4 5 -> InitLedger invokation"
+sleep $SLEEP_MAIN
+chaincodeInvokeInit 1 2 3 4 5
 
 infoln "Quering the chaincode: Get All Assets"
 sleep $SLEEP_MAIN

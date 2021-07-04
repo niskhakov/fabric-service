@@ -17,6 +17,8 @@ export ORDERER_CA=${PWD}/fixtures/crypto-config/ordererOrganizations/example.com
 export PEER0_ORG1_CA=${PWD}/fixtures/crypto-config/peerOrganizations/org1.example.com/peers/peer0.org1.example.com/tls/ca.crt
 export PEER0_ORG2_CA=${PWD}/fixtures/crypto-config/peerOrganizations/org2.example.com/peers/peer0.org2.example.com/tls/ca.crt
 export PEER0_ORG3_CA=${PWD}/fixtures/crypto-config/peerOrganizations/org3.example.com/peers/peer0.org3.example.com/tls/ca.crt
+export PEER0_ORG4_CA=${PWD}/fixtures/crypto-config/peerOrganizations/org4.example.com/peers/peer0.org4.example.com/tls/ca.crt
+export PEER0_ORG5_CA=${PWD}/fixtures/crypto-config/peerOrganizations/org5.example.com/peers/peer0.org5.example.com/tls/ca.crt
 export ORDERER_ADMIN_TLS_SIGN_CERT=${PWD}/fixtures/crypto-config/ordererOrganizations/example.com/orderers/orderer.example.com/tls/server.crt
 export ORDERER_ADMIN_TLS_PRIVATE_KEY=${PWD}/fixtures/crypto-config/ordererOrganizations/example.com/orderers/orderer.example.com/tls/server.key
 
@@ -180,5 +182,11 @@ networkUp
 createChannel
 joinChannel 1
 joinChannel 2
+joinChannel 3
+joinChannel 4
+joinChannel 5
 setAnchorPeer 1
 setAnchorPeer 2
+setAnchorPeer 3
+setAnchorPeer 4
+setAnchorPeer 5

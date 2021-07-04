@@ -132,20 +132,7 @@ message Proposal {
     // type field.  For the type CHAINCODE, it might be the bytes of a
     // ChaincodeAction message.
     bytes extension = 3;
-
-    // Data, which is necessary for randomized endorsing validation
-    bytes randomization = 4;
-}
-
-message Randomization {
-    // VRF digest
-    bytes vrfOutput = 1;
-
-    // VRF proof
-    bytes vrfProof = 2;
-
-    // Ledger Height
-    uint64 ledgerHeight = 3;
+       
 }
 
 

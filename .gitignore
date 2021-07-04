@@ -1,2 +1,7 @@
 .vagrant/
 .old/
+fixtures/artifacts/
+fixtures/crypto-config/
+log.txt
+basic.tar.gz
+*.log

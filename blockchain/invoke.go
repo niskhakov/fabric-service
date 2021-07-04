@@ -3,27 +3,20 @@ package blockchain
 import (
 	"fmt"
 
+	"github.com/hyperledger/fabric-protos-go/peer"
 	"github.com/hyperledger/fabric-sdk-go/pkg/client/channel"
-	"github.com/hyperledger/fabric-sdk-go/pkg/common/providers/fab"
 )
 
 // InvokeHello
-func (setup *FabricSetup) InvokeCC(targetPeers []string) (string, error) {
+func (setup *FabricSetup) InvokeCC(args []string, targetPeers []string, randomization *peer.Randomization) (string, error) {
 
-	// Prepare arguments
-	var args []string
-	args = append(args, "CreateAsset")
-	args = append(args, "asset120")
-	args = append(args, "yellow")
-	args = append(args, "5")
-	args = append(args, "Tom")
-	args = append(args, "1300")
+	
 
 	// eventID := "eventInvoke"
 
 	// Add data that will be visible in the proposal, like a description of the invoke request
 	transientDataMap := make(map[string][]byte)
-	transientDataMap["result"] = []byte("Transient data in hello invoke")
+	// transientDataMap["result"] = []byte("Transient data in hello invoke")
 
 	// reg, notifier, err := setup.event.RegisterChaincodeEvent(setup.ChainCodeID, eventID)
 	// if err != nil {
@@ -37,12 +30,9 @@ func (setup *FabricSetup) InvokeCC(targetPeers []string) (string, error) {
 		ChaincodeID: setup.ChainCodeID, 
 		Fcn: args[0], 
 		Args: [][]byte{[]byte(args[1]), []byte(args[2]), []byte(args[3]), []byte(args[4]), []byte(args[5])}, 
-		TransientMap: transientDataMap, 
-		Randomization: fab.RandomizationData{
-			VrfOutput: []byte("hello"), 
-			VrfProof: []byte("hi"), 
-			LedgerHeight: 10,
-		}}, 
+		TransientMap: transientDataMap,
+		Randomization: randomization,
+		}, 
 		channel.WithTargetEndpoints(targetPeers...))
 
 	if err != nil {

@@ -56,6 +56,24 @@ message TransactionAction {
     // The payload of the action as defined by the type in the header For
     // chaincode, it's the bytes of ChaincodeActionPayload
     bytes payload = 2;
+
+    // Data, which is necessary for randomized endorsing validation
+    bytes randomization = 4;
+}
+
+
+message Randomization {
+    // VRF digest
+    bytes vrfOutput = 1;
+
+    // VRF proof
+    bytes vrfProof = 2;
+
+    // Ledger Height
+    uint64 ledgerHeight = 3;
+
+    // Ledger Block Hash
+    bytes ledgerBlockHash = 4;
 }
 
 //---------- Chaincode Transaction ------------
